@@ -5,7 +5,7 @@ from utils.asserts import AssertData
 
 class UserTablePage:
     MENU_LINK = "a[href*='view{}Module']"
-    SORT_HEADER = "//div[@role='columnheader'][contains(.,'{}')]//div[contains(@class,'oxd-table-header-sort')]"
+    SORT_HEADER = "//div[@role='columnheader'][contains(.,'{}')]//div[@class='oxd-table-header-sort']"
     SORT_OPTION = "//div[@role='columnheader'][contains(.,'{}')]//div[contains(@class,'oxd-table-header-sort-dropdown')]//span[text()='{}']"
     COLUMN_CELLS = "//div[@class='oxd-table-body']//div[@role='row']//div[@role='cell'][{}]"
 
