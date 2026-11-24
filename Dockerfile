@@ -8,7 +8,7 @@ WORKDIR /app
 
 COPY requirement.txt .
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt && \
+    pip install --no-cache-dir -r requirement.txt && \
     playwright install chromium
 
 COPY . .
