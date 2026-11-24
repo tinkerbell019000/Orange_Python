@@ -13,6 +13,7 @@ DEFAULT_USER_PAYLOAD = {
     "password": "Password@123",
 }
 
+
 ADD_USER_NEGATIVE_VALIDATIONS = [
     ({"employee": "InvalidEmp999", "pick_emp": False}, "Employee Name", "Invalid"),
     ({"username": "usr"}, "Username", "Should be at least 5 characters"),

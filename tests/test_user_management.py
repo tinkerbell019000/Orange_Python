@@ -12,6 +12,7 @@ async def shared_test_user(logged_in_session, user_management_page: UserManageme
     yield username
     await user_management_page.delete_user(username)
 
+
 @pytest.mark.smoke
 @pytest.mark.regression
 async def test_search_user_valid_positive(

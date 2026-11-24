@@ -60,6 +60,7 @@ def admin_user_page(page): return AdminUserPage(page)
 @pytest.fixture(scope="session")
 def user_table_page(page): return UserTablePage(page)
 
+
 @pytest_asyncio.fixture(scope="session")
 async def logged_in_session(login_page: LoginPage):
     await login_page.login_to_orangehrm()

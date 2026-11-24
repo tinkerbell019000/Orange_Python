@@ -31,6 +31,7 @@ class ElementActions:
         selector = self.get_dynamic_locator(selector_template, *args)
         await self.wait_and_click(selector)
 
+
     async def wait_and_fill(self, selector: Union[str, Locator], value: str):
         locator = await self.waits.wait_for_element_visible(selector)
         logger.info(f"Filling element: {selector}")

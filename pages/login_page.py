@@ -26,6 +26,7 @@ class LoginPage:
         await self.actions.wait_and_click(self.LOGIN_BUTTON)
         await self.waits.wait_for_element_visible(self.SIDE_MENU)
 
+
     async def logout_from_orangehrm(self):
         if await self.actions.is_visible(self.USER_DROPDOWN):
             await self.actions.wait_and_click(self.USER_DROPDOWN)

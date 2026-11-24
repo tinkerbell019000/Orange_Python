@@ -46,6 +46,7 @@ class AdminUserPage:
                 self.DROPDOWN_BY_LABEL, self.DROPDOWN_OPTION, "Status", payload["status"]
             )
 
+
         if "username" in payload:
             username_input = self.actions.get_dynamic_locator(self.INPUT_BY_LABEL, "Username")
             await self.actions.wait_and_fill(username_input, payload["username"])

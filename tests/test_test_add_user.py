@@ -43,6 +43,7 @@ async def test_add_user_positive(admin_user_page: AdminUserPage):
         "password": "Password@123",
         "confirm_password": "Password@123",
     })
+    
     await admin_user_page.wait_for_success_toast()
     await admin_user_page.search_user(username)
     await admin_user_page.asserts.assert_element_visible(
