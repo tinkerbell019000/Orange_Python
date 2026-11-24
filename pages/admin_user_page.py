@@ -52,6 +52,7 @@ class AdminUserPage:
                     data[key],
                 )
 
+
         await self.actions.click_dynamic(self.BUTTON_BY_TEXT, "Save")
 
     async def search_user(self, username: str):

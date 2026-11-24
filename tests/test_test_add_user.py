@@ -30,7 +30,6 @@ async def test_add_user_field_validations_negative(admin_user_page: AdminUserPag
     await admin_user_page.submit_form(payload)
     await admin_user_page.asserts.assert_dynamic_contains_text(admin_user_page.ERROR_BY_LABEL, expected_msg, error_label)
 
-
 @pytest.mark.smoke
 @pytest.mark.regression
 async def test_add_user_positive(admin_user_page: AdminUserPage):

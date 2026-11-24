@@ -15,6 +15,7 @@ ADD_USER_NEGATIVE_VALIDATIONS = [
     ({"password": "Password@123", "confirm_password": "Password@999"}, "Confirm Password", "Passwords do not match"),
 ]
 
+
 EDIT_USERNAME_VALIDATIONS = [("", "Required")] + [
     (payload["username"], expected_msg)
     for payload, error_label, expected_msg in ADD_USER_NEGATIVE_VALIDATIONS

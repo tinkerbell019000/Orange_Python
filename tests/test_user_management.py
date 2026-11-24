@@ -13,6 +13,7 @@ async def test_edit_user_invalid_username_negative(
     invalid_username: str,
     expected_error: str,
 ):
+
     username = _unique_username("edneg")
     await user_management_page.create_user(username=username)
     try:

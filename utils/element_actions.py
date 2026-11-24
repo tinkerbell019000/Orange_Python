@@ -35,6 +35,7 @@ class ElementActions:
         logger.info(f"Filling element: {selector}")
         await locator.fill(value)
 
+
     async def get_text(self, selector: Union[str, Locator], *args) -> str:
         locator = self.get_locator(selector, *args)
         await self.waits.wait_for_element_visible(locator)

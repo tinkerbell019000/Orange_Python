@@ -18,7 +18,8 @@ class UserTablePage:
         await self.actions.get_all_texts(self.COLUMN_CELLS, 2)
 
     async def sort_and_verify_column(self, column_name: str, column_index: int, order: str):
-        async with self.actions.wait_for_api("admin/users"):
+        async wi
+        th self.actions.wait_for_api("admin/users"):
             await self.actions.select_dynamic_custom_dropdown(
                 self.SORT_HEADER, self.SORT_OPTION, column_name, order
             )

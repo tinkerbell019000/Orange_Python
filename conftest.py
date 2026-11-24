@@ -62,6 +62,7 @@ def user_table_page(page): return UserTablePage(page)
 async def logged_in_session(login_page: LoginPage):
     await login_page.login_to_orangehrm()
 
+
 @pytest.hookimpl(hookwrapper=True)
 def pytest_runtest_makereport(item, call):
     outcome = yield
