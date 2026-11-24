@@ -24,7 +24,8 @@ class ElementActions:
     async def wait_and_click(self, selector: Union[str, Locator]):
         locator = await self.waits.wait_for_element_clickable(selector)
         logger.info(f"Clicking element: {selector}")
-        await locator.click()
+        await locator.click(no_wait_after=True)
+        
 
     async def click_dynamic(self, selector_template: str, *args):
         selector = self.get_dynamic_locator(selector_template, *args)
