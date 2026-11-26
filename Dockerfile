@@ -1,21 +1,25 @@
-FROM python:3.12-slim-bookworm
+FROM python:3.12-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    HEADLESS=true \
-    PATH="/opt/venv/bin:$PATH"
+    HEADLESS=true
 
 WORKDIR /app
 
-RUN python3 -m venv /opt/venv && \
-    pip install --no-cache-dir --upgrade pip
+# Install minimal OS packages required for Playwright's bundled Node driver
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libatomic1 \
+    ca-certificates \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY requirement.txt .
-RUN pip install --no-cache-dir -r requirement.txt && \
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirement.txt && \
     playwright install --with-deps chromium
 
 COPY . .
 
 RUN mkdir -p reports/screenshots
 
-CMD ["python", "-m", "pytest", "-v", "--html=reports/test_results.html", "--self-contained-html"]
+CMD ["pytest", "-v", "--html=reports/test_results.html", "--self-contained-html"]
