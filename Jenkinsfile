@@ -29,7 +29,12 @@ pipeline {
         stage('Build Test Docker Image') {
             steps {
                 script {
-                    sh "docker build -t ${IMAGE_NAME}:${IMAGE_TAG} ."
+                    sh """
+                        docker build \
+                          --cache-from ${IMAGE_NAME}:latest \
+                          -t ${IMAGE_NAME}:latest \
+                          -t ${IMAGE_NAME}:${IMAGE_TAG} .
+                    """
                 }
             }
         }
@@ -40,7 +45,6 @@ pipeline {
                     def markerFlag = params.SUITE == 'all' ? '' : "-m ${params.SUITE}"
                     def workerFlag = params.WORKERS.toInteger() > 1 ? "-n ${params.WORKERS}" : ''
 
-                    // Ensure clean reports directory on Jenkins workspace before run
                     sh "rm -rf reports && mkdir -p reports/screenshots"
 
                     try {
@@ -52,7 +56,6 @@ pipeline {
                               pytest -v ${markerFlag} ${workerFlag}
                         """
                     } finally {
-                        // Extract HTML report & screenshots from container regardless of test pass/fail
                         sh "docker cp ${CONTAINER_NAME}:/app/reports/. ./reports/ || true"
                         sh "docker rm -f ${CONTAINER_NAME} || true"
                     }
@@ -63,7 +66,6 @@ pipeline {
 
     post {
         always {
-            // Publish HTML Report even when tests fail
             publishHTML(target: [
                 allowMissing: true,
                 alwaysLinkToLastBuild: true,
@@ -73,12 +75,10 @@ pipeline {
                 reportName: 'Playwright Pytest Report'
             ])
 
-            // Archive screenshots & HTML report as build artifacts
             archiveArtifacts artifacts: 'reports/**/*', allowEmptyArchive: true
 
-            // Clean up built image to prevent disk space exhaustion
+            // Keep :latest cached so pip & playwright layers are reused on future builds
             sh "docker rmi -f ${IMAGE_NAME}:${IMAGE_TAG} || true"
-            sh "docker image prune -f || true"
         }
         success {
             echo "Automation Suite PASSED on ${params.BROWSER} (${params.SUITE})!"
