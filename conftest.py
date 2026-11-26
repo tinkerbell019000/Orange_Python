@@ -9,17 +9,36 @@ from pages.login_page import LoginPage
 from pages.select_side_menu_page import SideMenuPage
 from pages.admin_user_page import AdminUserPage
 from pages.user_table_page import UserTablePage
+from pages.user_management_page import UserManagementPage
+
+HEADLESS = os.getenv("HEADLESS", str(getattr(Config, "HEADLESS", False))).lower() == "true"
 
 BROWSER_CONFIGS = {
-    "chrome": {"type": "chromium", "kwargs": {"headless": False, "slow_mo": 300, "args": ["--start-maximized"]}},
-    "edge": {"type": "chromium", "kwargs": {"channel": "msedge", "headless": False, "slow_mo": 300, "args": ["--start-maximized"]}},
-    "firefox": {"type": "firefox", "kwargs": {"headless": False, "slow_mo": 300}},
-    "webkit": {"type": "webkit", "kwargs": {"headless": False, "slow_mo": 300}},
+    "chrome": {
+        "type": "chromium",
+        "kwargs": {
+            "headless": HEADLESS,
+            "slow_mo": 0 if HEADLESS else 300,
+            "args": ["--no-sandbox", "--disable-dev-shm-usage", "--start-maximized"],
+        },
+    },
+    "edge": {
+        "type": "chromium",
+        "kwargs": {
+            "channel": "msedge",
+            "headless": HEADLESS,
+            "slow_mo": 0 if HEADLESS else 300,
+            "args": ["--no-sandbox", "--disable-dev-shm-usage", "--start-maximized"],
+        },
+    },
+    "firefox": {"type": "firefox", "kwargs": {"headless": HEADLESS, "slow_mo": 0 if HEADLESS else 300}},
+    "webkit": {"type": "webkit", "kwargs": {"headless": HEADLESS, "slow_mo": 0 if HEADLESS else 300}},
 }
+
 
 @pytest_asyncio.fixture(scope="session")
 async def page():
-    requested = getattr(Config, "BROWSER", "chrome").lower()
+    requested = os.getenv("BROWSER", getattr(Config, "BROWSER", "chrome")).lower()
     candidates = [requested, "chrome"] if requested != "chrome" else ["chrome"]
 
     async with async_playwright() as p:
@@ -36,8 +55,8 @@ async def page():
 
         is_chromium = browser.browser_type.name == "chromium"
         context = await browser.new_context(
-            no_viewport=is_chromium,
-            viewport=None if is_chromium else {"width": 1920, "height": 1080},
+            no_viewport=False if HEADLESS else is_chromium,
+            viewport={"width": 1920, "height": 1080} if (HEADLESS or not is_chromium) else None,
         )
         page = await context.new_page()
         yield page
@@ -58,9 +77,13 @@ def admin_user_page(page): return AdminUserPage(page)
 @pytest.fixture(scope="session")
 def user_table_page(page): return UserTablePage(page)
 
+@pytest.fixture(scope="session")
+def user_management_page(page): return UserManagementPage(page)
+
 @pytest_asyncio.fixture(scope="session")
 async def logged_in_session(login_page: LoginPage):
     await login_page.login_to_orangehrm()
+
 
 @pytest.hookimpl(hookwrapper=True)
 def pytest_runtest_makereport(item, call):
