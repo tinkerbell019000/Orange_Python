@@ -2,14 +2,15 @@ pipeline {
     agent any
 
     parameters {
-        choice(name: 'SUITE', choices: ['smoke', 'regression', 'all'], description: 'Select pytest marker suite to run')
+        choice(name: 'SUITE', choices: ['all', 'smoke', 'regression'], description: 'Select pytest marker suite to run')
         choice(name: 'BROWSER', choices: ['chrome', 'firefox', 'webkit'], description: 'Browser to execute tests on')
         string(name: 'WORKERS', defaultValue: '1', description: 'Number of parallel pytest-xdist workers (use 1 for shared session)')
     }
 
     environment {
-        IMAGE_NAME = "orangehrm-playwright-tests"
-        IMAGE_TAG  = "${env.BUILD_NUMBER}"
+        IMAGE_NAME     = "orangehrm-playwright-tests"
+        IMAGE_TAG      = "${env.BUILD_NUMBER}"
+        CONTAINER_NAME = "orangehrm-runner-${env.BUILD_NUMBER}"
     }
 
     options {
@@ -42,16 +43,19 @@ pipeline {
                     // Ensure clean reports directory on Jenkins workspace before run
                     sh "rm -rf reports && mkdir -p reports/screenshots"
 
-                    // Mount workspace/reports into container so HTML report & screenshots survive container exit
-                    sh """
-                        docker run --rm --ipc=host \
-                          -e HEADLESS=true \
-                          -e BROWSER=${params.BROWSER} \
-                          -v "\$(pwd)/reports:/app/reports" \
-                          ${IMAGE_NAME}:${IMAGE_TAG} \
-                          pytest -v ${markerFlag} ${workerFlag} \
-                          --html=reports/test_results.html --self-contained-html
-                    """
+                    try {
+                        sh """
+                            docker run --name ${CONTAINER_NAME} --ipc=host \
+                              -e HEADLESS=true \
+                              -e BROWSER=${params.BROWSER} \
+                              ${IMAGE_NAME}:${IMAGE_TAG} \
+                              pytest -v ${markerFlag} ${workerFlag}
+                        """
+                    } finally {
+                        // Extract HTML report & screenshots from container regardless of test pass/fail
+                        sh "docker cp ${CONTAINER_NAME}:/app/reports/. ./reports/ || true"
+                        sh "docker rm -f ${CONTAINER_NAME} || true"
+                    }
                 }
             }
         }
