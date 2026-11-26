@@ -1,4 +1,4 @@
-FROM ://microsoft.com
+FROM mcr.://microsoft.com
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
