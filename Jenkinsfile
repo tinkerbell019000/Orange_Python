@@ -15,7 +15,7 @@ pipeline {
 
     options {
         buildDiscarder(logRotator(numToKeepStr: '15'))
-        timeout(time: 120, unit: 'MINUTES')
+        timeout(time: 90, unit: 'MINUTES')
         timestamps()
     }
 
@@ -29,12 +29,7 @@ pipeline {
         stage('Build Test Docker Image') {
             steps {
                 script {
-                    sh """
-                        docker build \
-                          --cache-from ${IMAGE_NAME}:latest \
-                          -t ${IMAGE_NAME}:latest \
-                          -t ${IMAGE_NAME}:${IMAGE_TAG} .
-                    """
+                    sh "docker build -t ${IMAGE_NAME}:latest -t ${IMAGE_NAME}:${IMAGE_TAG} ."
                 }
             }
         }
@@ -77,7 +72,6 @@ pipeline {
 
             archiveArtifacts artifacts: 'reports/**/*', allowEmptyArchive: true
 
-            // Keep :latest cached so pip & playwright layers are reused on future builds
             sh "docker rmi -f ${IMAGE_NAME}:${IMAGE_TAG} || true"
         }
         success {
