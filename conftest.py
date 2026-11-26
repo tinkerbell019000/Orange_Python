@@ -11,7 +11,7 @@ from pages.admin_user_page import AdminUserPage
 from pages.user_table_page import UserTablePage
 from pages.user_management_page import UserManagementPage
 
-
+#conftest.py merge check
 BROWSER_CONFIGS = {
     "chrome": {"type": "chromium", "kwargs": {"headless": False, "slow_mo": 300, "args": ["--start-maximized"]}},
     "edge": {"type": "chromium", "kwargs": {"channel": "msedge", "headless": False, "slow_mo": 300, "args": ["--start-maximized"]}},
@@ -66,6 +66,7 @@ async def logged_in_session(login_page: LoginPage):
     await login_page.login_to_orangehrm()
     yield
     await login_page.logout_from_orangehrm()
+
 
 @pytest.fixture(scope="session")
 def user_management_page(page): return UserManagementPage(page)
