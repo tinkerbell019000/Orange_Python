@@ -7,16 +7,13 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-# Create an isolated virtual environment (avoids PEP 668 & PATH issues)
 RUN python3 -m venv /opt/venv && \
     pip install --no-cache-dir --upgrade pip
 
-# Install Python packages and matching Chromium browser + OS libraries
 COPY requirement.txt .
 RUN pip install --no-cache-dir -r requirement.txt && \
     playwright install --with-deps chromium
 
-# Copy project source code
 COPY . .
 
 RUN mkdir -p reports/screenshots
