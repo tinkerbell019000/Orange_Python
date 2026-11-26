@@ -13,5 +13,18 @@ services:
     environment:
       - JAVA_OPTS=-Djenkins.install.runSetupWizard=true
 
+  playwright-tests:
+    profiles: ["tests"]
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: orangehrm-tests:latest
+    ipc: host
+    environment:
+      - HEADLESS=true
+      - BROWSER=chrome
+    volumes:
+      - ./reports:/app/reports
+
 volumes:
   jenkins_home:
