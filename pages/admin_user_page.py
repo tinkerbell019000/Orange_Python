@@ -5,6 +5,7 @@ from utils.asserts import AssertData
 
 class AdminUserPage:
     MENU_LINK = "a[href*='view{}Module']"
+    BUTTON_BY_TEXT = "//button[normalize-space()='{}']"
     ADD_BUTTON = "//button[normalize-space()='Add']"
     SAVE_BUTTON = "//button[normalize-space()='Save']"
     SEARCH_BUTTON = "//button[normalize-space()='Search']"
@@ -12,7 +13,7 @@ class AdminUserPage:
     DROPDOWN_BY_LABEL = "//label[text()='{}']/../following-sibling::div//div[contains(@class,'oxd-select-text-input')]"
     DROPDOWN_OPTION = "//div[@role='listbox']//span[text()='{}']"
     INPUT_BY_LABEL = "//label[text()='{}']/../following-sibling::div//input"
-    AUTOCOMPLETE_FIRST_OPTION = "(//div[@role='listbox']//div[@role='option'][not(contains(., 'Searching'))])[1]"
+    AUTOCOMPLETE_OPTION = "//div[@role='listbox']//div[@role='option'][not(contains(., 'Searching'))]"
 
     ALL_FIELD_ERRORS = "span.oxd-input-field-error-message"
     ERROR_BY_LABEL = "//label[text()='{}']/../following-sibling::span[contains(@class,'oxd-input-field-error-message')]"
@@ -31,21 +32,16 @@ class AdminUserPage:
 
     async def submit_form(self, payload: dict):
         if "role" in payload:
-            await self.actions.select_dynamic_custom_dropdown(
-                self.DROPDOWN_BY_LABEL, self.DROPDOWN_OPTION, "User Role", payload["role"]
-            )
+            await self.actions.select_dynamic_custom_dropdown(self.DROPDOWN_BY_LABEL, self.DROPDOWN_OPTION, "User Role", payload["role"])
 
         if "employee" in payload:
             emp_input = self.actions.get_dynamic_locator(self.INPUT_BY_LABEL, "Employee Name")
             await self.actions.wait_and_fill(emp_input, payload["employee"])
             if payload.get("pick_emp", False):
-                await self.actions.wait_and_click(self.AUTOCOMPLETE_FIRST_OPTION)
+                await self.actions.wait_and_click(self.page.locator(self.AUTOCOMPLETE_OPTION).first)
 
         if "status" in payload:
-            await self.actions.select_dynamic_custom_dropdown(
-                self.DROPDOWN_BY_LABEL, self.DROPDOWN_OPTION, "Status", payload["status"]
-            )
-
+            await self.actions.select_dynamic_custom_dropdown(self.DROPDOWN_BY_LABEL, self.DROPDOWN_OPTION, "Status", payload["status"])
 
         if "username" in payload:
             username_input = self.actions.get_dynamic_locator(self.INPUT_BY_LABEL, "Username")
@@ -64,7 +60,6 @@ class AdminUserPage:
                 await self.actions.wait_and_click(self.SAVE_BUTTON)
         else:
             await self.actions.wait_and_click(self.SAVE_BUTTON)
-
 
     async def wait_for_success_toast(self):
         await self.waits.wait_for_element_visible(self.SUCCESS_TOAST)

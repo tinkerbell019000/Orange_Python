@@ -1,17 +1,34 @@
-import uuid
+import random
+import string
 from config.config import Config
 
 
-def unique_username(prefix: str = "qauser") -> str:
-    return f"{prefix}_{uuid.uuid4().hex[:6]}"
+def unique_username(prefix: str = "admin_user") -> str:
+    random_suffix = "".join(random.choices(string.ascii_lowercase, k=5))
+    return f"{prefix}_{random_suffix}"
 
 
-DEFAULT_USER_PAYLOAD = {
-    "role": "ESS",
-    "status": "Enabled",
-    "employee_hint": "a",
-    "password": "Password@123",
-}
+def get_valid_add_user_payload(username: str | None = None) -> dict:
+    return {
+        "role": "ESS",
+        "employee": "a",
+        "pick_emp": True,
+        "status": "Enabled",
+        "username": username or unique_username(),
+        "password": "Password@123",
+        "confirm_password": "Password@123",
+    }
+
+
+def get_valid_edit_user_payload(updated_username: str | None = None) -> dict:
+    return {
+        "role": "Admin",
+        "status": "Disabled",
+        "username": updated_username or unique_username(),
+        "change_password": True,
+        "password": "NewPassword@123",
+        "confirm_password": "NewPassword@123",
+    }
 
 
 ADD_USER_NEGATIVE_VALIDATIONS = [
