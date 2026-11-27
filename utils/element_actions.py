@@ -1,11 +1,10 @@
-from typing import Union
-from playwright.async_api import Page, Locator
-from utils.waits import Waits
-from utils.logger import get_logger
 from contextlib import asynccontextmanager
+from typing import Union
+from playwright.async_api import Locator, Page
+from utils.logger import get_logger
+from utils.waits import Waits
 
 logger = get_logger(__name__)
-
 
 class ElementActions:
     def __init__(self, page: Page):
@@ -21,18 +20,19 @@ class ElementActions:
     def get_dynamic_locator(self, selector_template: str, *args) -> str:
         return selector_template.format(*args)
 
-    async def wait_and_click(self, selector: Union[str, Locator]):
+    async def wait_and_click(self, selector: Union[str, Locator]) -> None:
         locator = await self.waits.wait_for_element_clickable(selector)
         logger.info(f"Clicking element: {selector}")
-        await locator.click()
+        await locator.click(no_wait_after=True)
 
-    async def click_dynamic(self, selector_template: str, *args):
+    async def click_dynamic(self, selector_template: str, *args) -> None:
         selector = self.get_dynamic_locator(selector_template, *args)
         await self.wait_and_click(selector)
 
-    async def wait_and_fill(self, selector: Union[str, Locator], value: str):
+    async def wait_and_fill(self, selector: Union[str, Locator], value: str) -> None:
         locator = await self.waits.wait_for_element_visible(selector)
         logger.info(f"Filling element: {selector}")
+        await locator.clear()
         await locator.fill(value)
 
     async def get_text(self, selector: Union[str, Locator], *args) -> str:
@@ -49,28 +49,30 @@ class ElementActions:
         logger.info(f"Retrieved {len(texts)} texts from: {selector}")
         return texts
 
+    async def is_visible(self, selector: Union[str, Locator], *args) -> bool:
+        return await self.get_locator(selector, *args).is_visible()
 
-    async def is_visible(self, selector: Union[str, Locator]) -> bool:
-        return await self.get_locator(selector).is_visible()
+    async def is_disabled(self, selector: Union[str, Locator], *args) -> bool:
+        return await self.get_locator(selector, *args).is_disabled()
 
-    async def hover_element(self, selector: Union[str, Locator]):
+    async def hover_element(self, selector: Union[str, Locator]) -> None:
         locator = await self.waits.wait_for_element_visible(selector)
         logger.info(f"Hovering mouse: {selector}")
         await locator.hover()
 
-    async def select_dropdown_by_value(self, selector: Union[str, Locator], value: str):
+    async def select_dropdown_by_value(self, selector: Union[str, Locator], value: str) -> None:
         locator = await self.waits.wait_for_element_visible(selector)
         logger.info(f"Select dropdown value [{value}] element: {selector}")
         await locator.select_option(value=value)
 
-    async def select_custom_dropdown_option(self, dropdown_click_selector: Union[str, Locator], option_text_selector: Union[str, Locator]):
-        logger.info(f"menu: {dropdown_click_selector}")
+    async def select_custom_dropdown_option(self,dropdown_click_selector: Union[str, Locator],option_text_selector: Union[str, Locator],) -> None:
+        logger.info(f"Opening custom dropdown: {dropdown_click_selector}")
         await self.wait_and_click(dropdown_click_selector)
         locator = await self.waits.wait_for_element_visible(option_text_selector)
-        logger.info(f"Select option list: {option_text_selector}")
+        logger.info(f"Selecting option: {option_text_selector}")
         await locator.click()
 
-    async def set_checkbox_state(self, selector: Union[str, Locator], check: bool = True):
+    async def set_checkbox_state(self, selector: Union[str, Locator], check: bool = True) -> None:
         locator = await self.waits.wait_for_element_visible(selector)
         is_checked = await locator.is_checked()
         if is_checked != check:
@@ -85,20 +87,11 @@ class ElementActions:
     @asynccontextmanager
     async def wait_for_api(self, url_substring: str, status_code: int = 200):
         logger.info(f"Waiting for API response containing: {url_substring}")
-        async with self.page.expect_response(
-            lambda res: url_substring in res.url and res.status == status_code,
-            timeout=self.waits.timeout
-        ) as response_info:
+        async with self.page.expect_response(lambda res: url_substring in res.url and res.status == status_code,timeout=self.waits.timeout,) as response_info:
             yield response_info
         await response_info.value
 
-    async def select_dynamic_custom_dropdown(
-        self,
-        dropdown_click_template: str,
-        option_text_template: str,
-        dropdown_arg: str,
-        option_arg: str,
-    ):
+    async def select_dynamic_custom_dropdown(self,dropdown_click_template: str,option_text_template: str,dropdown_arg: str,option_arg: str,) -> None:
         dropdown_selector = self.get_dynamic_locator(dropdown_click_template, dropdown_arg)
         option_selector = (
             self.get_dynamic_locator(option_text_template, dropdown_arg, option_arg)
@@ -109,4 +102,3 @@ class ElementActions:
         await self.wait_and_click(dropdown_selector)
         logger.info(f"Selecting dynamic option: {option_selector}")
         await self.wait_and_click(option_selector)
-
