@@ -7,11 +7,9 @@ from playwright.async_api import async_playwright
 from config.config import Config
 from pages.login_page import LoginPage
 from pages.select_side_menu_page import SideMenuPage
-from pages.admin_user_page import AdminUserPage
 from pages.user_table_page import UserTablePage
 from pages.user_management_page import UserManagementPage
 
-#conftest.py merge check
 BROWSER_CONFIGS = {
     "chrome": {"type": "chromium", "kwargs": {"headless": False, "slow_mo": 300, "args": ["--start-maximized"]}},
     "edge": {"type": "chromium", "kwargs": {"channel": "msedge", "headless": False, "slow_mo": 300, "args": ["--start-maximized"]}},
@@ -55,18 +53,13 @@ def login_page(page): return LoginPage(page)
 def select_side_menu_page(page): return SideMenuPage(page)
 
 @pytest.fixture(scope="session")
-def admin_user_page(page): return AdminUserPage(page)
-
-@pytest.fixture(scope="session")
 def user_table_page(page): return UserTablePage(page)
-
 
 @pytest_asyncio.fixture(scope="session")
 async def logged_in_session(login_page: LoginPage):
     await login_page.login_to_orangehrm()
     yield
     await login_page.logout_from_orangehrm()
-
 
 @pytest.fixture(scope="session")
 def user_management_page(page): return UserManagementPage(page)

@@ -1,123 +1,146 @@
+import importlib
 from playwright.async_api import Page
 from utils.element_actions import ElementActions
-from utils.asserts import AssertData
+from utils.logger import get_logger
+from utils.waits import Waits
 
+try:
+    AssertData = importlib.import_module("utils.assert").AssertData
+except ModuleNotFoundError:
+    AssertData = importlib.import_module("utils.asserts").AssertData
+logger = get_logger(__name__)
 
 class UserManagementPage:
-    MENU_LINK = "a[href*='view{}Module']"
+    USERS_API_ENDPOINT = "/api/v2/admin/users"
+    MENU_ITEM_BY_NAME = "//aside//a[contains(@class,'oxd-main-menu-item')][.//span[normalize-space()='{}']]"
     BUTTON_BY_TEXT = "//button[normalize-space()='{}']"
+    INPUT_BY_LABEL = "//div[contains(@class,'oxd-input-group')][.//label[normalize-space()='{}']]//input"
+    DROPDOWN_BY_LABEL = "//div[contains(@class,'oxd-input-group')][.//label[normalize-space()='{}']]//div[contains(@class,'oxd-select-text-input')]"
+    DROPDOWN_OPTION_BY_TEXT = "//div[@role='listbox']//div[@role='option'][.//span[normalize-space()='{}']]"
+    AUTOCOMPLETE_OPTION = "//div[@role='listbox']//div[@role='option'][not(contains(.,'Searching')) and not(contains(.,'No Records'))]"
 
-    FIELD_CONTAINER = "//label[normalize-space()='{}']/ancestor::div[contains(@class,'oxd-input-group')]"
-    DROPDOWN_BY_LABEL = f"{FIELD_CONTAINER}//div[contains(@class,'oxd-select-text-input')]"
-    INPUT_BY_LABEL = f"{FIELD_CONTAINER}//input"
-    ERROR_BY_LABEL = f"{FIELD_CONTAINER}//span[contains(@class,'oxd-input-field-error-message')]"
+    CHECKBOX_ICON_BY_LABEL = "//div[contains(@class,'oxd-input-group')][.//label[normalize-space()='{}']]//i[contains(@class,'oxd-checkbox-input-icon')]"
+    ERROR_BY_LABEL = "//div[contains(@class,'oxd-input-group')][.//label[normalize-space()='{}']]//span[contains(@class,'oxd-input-field-error-message')]"
 
-    DROPDOWN_OPTION = "//div[@role='listbox']//span[normalize-space()='{}']"
-    AUTOCOMPLETE_OPTION = "//div[@role='listbox']//div[@role='option'][not(contains(., 'Searching'))]"
-    CHANGE_PASSWORD_SPAN = "//label[normalize-space()='Yes']//span[contains(@class,'oxd-checkbox-input')]"
+    TABLE_ROW_BY_USER = "//div[@role='table']//div[@role='row'][.//div[@role='cell'][normalize-space()='{}']]"
+    ROW_ACTION_BY_USER = "//div[@role='table']//div[@role='row'][.//div[@role='cell'][normalize-space()='{}']]//button[.//i[contains(@class,'{}')]]"
 
-    SUCCESS_TOAST = "div.oxd-toast--success"
-    NO_RECORDS_TEXT = "//span[normalize-space()='No Records Found']"
+    NO_RECORDS_TEXT = "//div[contains(@class,'orangehrm-paper-container')]//span[normalize-space()='No Records Found']"
+    SUCCESS_TOAST = "//div[contains(@class,'oxd-toast-container')]//div[contains(@class,'oxd-toast--success')]"
+    LOADING_SPINNER = "//div[contains(@class,'oxd-form-loader')]"
+    ERROR_TOAST = "//div[contains(@class,'oxd-toast-container')]//div[contains(@class,'oxd-toast--error') or contains(@class,'oxd-toast--warn')]"
+    EDIT_ICON_CLASS = "bi-pencil-fill"
+    DELETE_ICON_CLASS = "bi-trash"
 
-    TABLE_ROW_BY_USER = "//div[@class='oxd-table-body']//div[@role='row'][.//div[@role='cell'][2][normalize-space()='{}']]"
-    TABLE_USERNAME_CELLS = "//div[@class='oxd-table-body']//div[@role='row']//div[@role='cell'][2]"
-    ROW_ACTION_BTN = f"{TABLE_ROW_BY_USER}//button[.//i[contains(@class,'{{}}')]]"
-    CONFIRM_DELETE_BTN = "//div[contains(@class,'oxd-dialog-sheet')]//button[normalize-space()='Yes, Delete']"
-
-    FIELD_HANDLERS = {
-        "role": ("User Role", "_select_dropdown"),
-        "status": ("Status", "_select_dropdown"),
-        "employee": ("Employee Name", "_fill_employee"),
-        "username": ("Username", "_clear_and_fill"),
-        "change_password": ("Change Password", "_toggle_change_password"),
-        "password": ("Password", "_clear_and_fill"),
-        "confirm_password": ("Confirm Password", "_clear_and_fill"),
-    }
+    DROPDOWN_FIELDS = (("role", "User Role"), ("status", "Status"))
+    TEXT_FIELDS = (
+        ("username", "Username"),
+        ("password", "Password"),
+        ("confirm_password", "Confirm Password"),
+    )
 
     def __init__(self, page: Page):
         self.page = page
         self.actions = ElementActions(page)
-        self.waits = self.actions.waits
+        self.waits = Waits(page)
         self.asserts = AssertData(page)
 
-    async def navigate_to_users(self):
-        async with self.actions.wait_for_api("admin/users"):
-            await self.actions.click_dynamic(self.MENU_LINK, "Admin")
+    async def _fill_labeled_input(self, label: str, value: str) -> None:
+        selector = self.actions.get_dynamic_locator(self.INPUT_BY_LABEL, label)
+        await self.actions.wait_and_fill(selector, value)
 
-    async def get_any_existing_username(self, exclude: str = "") -> str:
-        await self.navigate_to_users()
-        users = await self.actions.get_all_texts(self.TABLE_USERNAME_CELLS)
-        return next(u for u in users if u and u != exclude)
+    async def _click_button(self, button_text: str) -> None:
+        await self.actions.click_dynamic(self.BUTTON_BY_TEXT, button_text)
 
-    async def _select_dropdown(self, label: str, value: str, **_):
-        await self.actions.select_dynamic_custom_dropdown(self.DROPDOWN_BY_LABEL, self.DROPDOWN_OPTION, label, value)
+    async def navigate_to_user_management(self) -> None:
+        if "admin/viewSystemUsers" not in self.page.url:
+            base_host = self.page.url.split("/web/")[0]
+            await self.page.goto(f"{base_host}/web/index.php/admin/viewSystemUsers")
+        await self.waits.wait_for_element_hidden(self.LOADING_SPINNER)
 
-    async def _clear_and_fill(self, label: str, value: str, blur: bool = True, **_):
-        locator = self.actions.get_locator(self.INPUT_BY_LABEL, label)
-        await self.waits.wait_for_element_visible(locator)
-        await locator.fill(value)
-        if blur:
-            await locator.press("Tab")
+    async def _fill_user_form(self, payload: dict) -> None:
+        for key, label in self.DROPDOWN_FIELDS:
+            if payload.get(key):
+                await self.actions.select_dynamic_custom_dropdown(dropdown_click_template=self.DROPDOWN_BY_LABEL,option_text_template=self.DROPDOWN_OPTION_BY_TEXT,dropdown_arg=label,option_arg=payload[key],)
 
-    async def _fill_employee(self, label: str, value: str, payload: dict):
-        await self._clear_and_fill(label, value, blur=False)
-        if payload.get("pick_emp"):
-            first_option = self.page.locator(self.AUTOCOMPLETE_OPTION).first
-            await self.waits.wait_for_element_visible(first_option)
-            await self.actions.wait_and_click(first_option)
+        if "employee" in payload:
+            await self._fill_labeled_input("Employee Name", payload["employee"])
+            if payload.get("pick_emp", False):
+                first_option = self.actions.get_locator(self.AUTOCOMPLETE_OPTION).first
+                await self.actions.wait_and_click(first_option)
 
-    async def _toggle_change_password(self, _label: str, enabled: bool, **_):
-        if enabled:
-            await self.actions.wait_and_click(self.CHANGE_PASSWORD_SPAN)
+        if payload.get("change_password", False):
+            await self.actions.click_dynamic(self.CHECKBOX_ICON_BY_LABEL, "Change Password ?")
 
-    async def _fill_user_form(self, payload: dict):
-        for key, (label, handler_name) in self.FIELD_HANDLERS.items():
+        for key, label in self.TEXT_FIELDS:
             if key in payload:
-                await getattr(self, handler_name)(label, payload[key], payload=payload)
+                await self._fill_labeled_input(label, payload[key])
 
-    async def _submit_form(self, expect_success: bool):
-        if expect_success:
-            await self.page.wait_for_load_state("networkidle")
-            async with self.actions.wait_for_api("admin/users"):
-                await self.actions.click_dynamic(self.BUTTON_BY_TEXT, "Save")
-            await self.waits.wait_for_element_visible(self.SUCCESS_TOAST)
-        else:
-            await self.actions.click_dynamic(self.BUTTON_BY_TEXT, "Save")
-
-    async def create_user(self, payload: dict, expect_success: bool = True):
-        await self.navigate_to_users()
-        await self.actions.click_dynamic(self.BUTTON_BY_TEXT, "Add")
-        await self._fill_user_form(payload)
-        await self._submit_form(expect_success)
-
-    async def search_user(self, username: str):
-        await self.navigate_to_users()
-        await self._clear_and_fill("Username", username)
-        async with self.actions.wait_for_api("admin/users"):
-            await self.actions.click_dynamic(self.BUTTON_BY_TEXT, "Search")
-
-    async def edit_user(self, current_username: str, payload: dict, expect_success: bool = True):
-        await self.search_user(current_username)
-        await self.actions.click_dynamic(self.ROW_ACTION_BTN, current_username, "bi-pencil-fill")
-
-        username_locator = self.actions.get_locator(self.INPUT_BY_LABEL, "Username")
-        await self.waits.wait_for_element_visible(username_locator)
-        await self.page.wait_for_function("([el, expected]) => el.value === expected",arg=[await username_locator.element_handle(), current_username],timeout=self.waits.timeout,)
-
-        await self._fill_user_form(payload)
-        await self._submit_form(expect_success)
-
-    async def delete_user(self, username: str):
-        await self.search_user(username)
-        await self.actions.click_dynamic(self.ROW_ACTION_BTN, username, "bi-trash")
-        async with self.actions.wait_for_api("admin/users"):
-            await self.actions.wait_and_click(self.CONFIRM_DELETE_BTN)
+    async def search_user(self, payload: dict) -> None:
+        username = payload["username"]
+        logger.info(f"Searching user: {username}")
+        await self.navigate_to_user_management()
+        await self._click_button("Reset")
+        await self.waits.wait_for_element_hidden(self.LOADING_SPINNER)
+        await self._fill_labeled_input("Username", username)
+        async with self.actions.wait_for_api(self.USERS_API_ENDPOINT, status_code=200):
+            await self._click_button("Search")
+        await self.waits.wait_for_element_hidden(self.LOADING_SPINNER)
+    
+    async def _submit_user_form(self, expect_success: bool) -> None:
+        if not expect_success:
+            await self.page.keyboard.press("Tab")
+            await self._click_button("Save")
+            return
+        async with self.actions.wait_for_api(self.USERS_API_ENDPOINT, status_code=200):
+            await self._click_button("Save")
         await self.waits.wait_for_element_visible(self.SUCCESS_TOAST)
+        await self.waits.wait_for_element_hidden(self.LOADING_SPINNER)
 
-    async def is_delete_disabled_or_protected(self, username: str) -> bool:
-        await self.search_user(username)
-        delete_locator = self.actions.get_locator(self.ROW_ACTION_BTN, username, "bi-trash")
-        if not await delete_locator.is_visible() or await delete_locator.is_disabled():
+    async def create_user(self, payload: dict, expect_success: bool = True) -> None:
+        logger.info(f"Creating user: {payload.get('username')} (expect_success={expect_success})")
+        await self.navigate_to_user_management()
+        await self._click_button("Add")
+        await self.waits.wait_for_url("**/admin/saveSystemUser")
+        await self.waits.wait_for_element_hidden(self.LOADING_SPINNER)
+        await self._fill_user_form(payload)
+        await self._submit_user_form(expect_success)
+
+    async def edit_user(self, payload: dict, expect_success: bool = True) -> None:
+        current_username = payload["current_username"]
+        logger.info(f"Editing user: {current_username} (expect_success={expect_success})")
+        await self.search_user({"username": current_username})
+        async with self.actions.wait_for_api(self.USERS_API_ENDPOINT, status_code=200):
+            await self.actions.click_dynamic(self.ROW_ACTION_BY_USER, current_username, self.EDIT_ICON_CLASS)
+        await self.waits.wait_for_url("**/admin/saveSystemUser/**")
+        await self.waits.wait_for_element_hidden(self.LOADING_SPINNER)
+        await self._fill_user_form(payload)
+        await self._submit_user_form(expect_success)
+
+    async def delete_user(self, payload: dict) -> None:
+        username = payload["username"]
+        logger.info(f"Deleting user: {username}")
+        await self.search_user({"username": username})
+        await self.actions.click_dynamic(
+            self.ROW_ACTION_BY_USER, username, self.DELETE_ICON_CLASS
+        )
+        await self.actions.click_dynamic(self.BUTTON_BY_TEXT, "Yes, Delete")
+        await self.waits.wait_for_element_visible(self.SUCCESS_TOAST)
+        await self.waits.wait_for_element_hidden(self.LOADING_SPINNER)
+
+    async def is_delete_disabled_or_protected(self, payload: dict) -> bool:
+        username = payload["username"]
+        logger.info(f"Checking delete protection for user: {username}")
+
+        await self.search_user({"username": username})
+        delete_btn = self.actions.get_locator(self.ROW_ACTION_BY_USER, username, self.DELETE_ICON_CLASS)
+
+        if (await delete_btn.count() == 0 or not await delete_btn.is_visible() or await delete_btn.is_disabled() or "disabled" in ((await delete_btn.get_attribute("class")) or "").lower()):
             return True
-        await self.actions.wait_and_click(delete_locator)
-        return not await self.actions.is_visible(self.CONFIRM_DELETE_BTN)
+
+        await self.actions.wait_and_click(delete_btn)
+        try:
+            await self.actions.get_locator(self.ERROR_TOAST).wait_for(state="visible", timeout=5000)
+            return True
+        except Exception:
+            return False
